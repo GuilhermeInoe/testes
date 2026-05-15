@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualização de Respostas - Acordeon</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            color: #333;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: transparent;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+            font-weight: 600;
+        }
+        .controls {
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #fff;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .search-box {
+            flex: 1;
+            min-width: 300px;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ccd1d9;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+        }
+        
+        /* Accordion Styles */
+        .accordion-item {
+            background: #fff;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            overflow: hidden;
+            border: 1px solid #e1e8ed;
+        }
+        .accordion-header {
+            padding: 18px 20px;
+            background-color: #fff;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start; /* Mudado para lidar com texto de múltiplas linhas */
+            transition: background-color 0.2s;
+            user-select: none;
+        }
+        .accordion-header:hover {
+            background-color: #f8f9fa;
+        }
+        .accordion-header.active {
+            background-color: #34495e;
+            color: #fff;
+        }
+        .accordion-header.active .enunciado-preview {
+            color: #d1d8e0; /* Cor mais clara quando ativo para dar contraste */
+        }
+        .accordion-header h3 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 600;
+            line-height: 1.5;
+            flex: 1;
+            padding-right: 20px;
+        }
+        .enunciado-preview {
+            font-weight: 400;
+            color: #555;
+            margin-left: 5px;
+        }
+        .accordion-icon {
+            font-size: 24px;
+            font-weight: bold;
+            transition: transform 0.3s;
+            flex-shrink: 0;
+            line-height: 1;
+            margin-top: 2px;
+        }
+        .accordion-header.active .accordion-icon {
+            transform: rotate(45deg);
+        }
+        .accordion-body {
+            display: none;
+            padding: 20px;
+            border-top: 1px solid #e1e8ed;
+            background-color: #fafbfc;
+        }
+        .accordion-body.open {
+            display: block;
+            animation: fadeIn 0.4s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Content Styles */
+        .table-responsive {
+            overflow-x: auto;
+            background: #fff;
+            border-radius: 6px;
+            border: 1px solid #e1e8ed;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 15px;
+        }
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #e1e8ed;
+            vertical-align: top;
+        }
+        th {
+            background-color: #f1f5f8;
+            color: #2c3e50;
+            font-weight: 600;
+        }
+        tr:last-child td {
+            border-bottom: none;
+        }
+        
+        /* Badges */
+        .status-badge {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: bold;
+            display: inline-block;
+            text-align: center;
+        }
+        .status-correta {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .status-incorreta {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .empty-cell {
+            color: #999;
+            font-style: italic;
+        }
+        .expand-all-btn {
+            padding: 10px 15px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+            white-space: nowrap;
+        }
+        .expand-all-btn:hover {
+            background: #2980b9;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Comparativo de Respostas: IA vs Apostila</h1>
+
+    <div class="controls">
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="Pesquisar por questão, enunciado ou palavra-chave...">
+        </div>
+        <div style="display: flex; gap: 15px; align-items: center;">
+            <span style="color: #666; font-size: 14px;"><strong id="countDisplay">0</strong> questões</span>
+            <button class="expand-all-btn" id="toggleAllBtn">Expandir Tudo</button>
+        </div>
+    </div>
+
+    <div id="accordionContainer">
+        <!-- Renderizado via JS -->
+    </div>
+</div>
+
+<script>
+    const rawData = [{"Questão ": 26.0, "Enunciado": "O proprietário de uma chácara decide construir uma piscina de 5 metros de largura por 6 metros de comprimento. Sabendo que a água ficará a 10 cm de transbordar e a altura total é de 1,3 m, qual volume de água a piscina terá? A) 30 m³. B) 36 m³. C) 39 m³. D) 42 m³. \n", "Alternativa": "A", "Status Alternativa": "Incorreta", "Resposta IA": "A resposta está incorreta. Parece que você esqueceu de usar a altura certa da água ou calculou só a área da base da piscina.", "Resposta Apostila": "incorreta. A resposta está incorreta porque a alternativa apresenta somente a área da piscina. O correto seria considerar também a profundidade"}, {"Questão ": 26.0, "Enunciado": "O proprietário de uma chácara decide construir uma piscina de 5 metros de largura por 6 metros de comprimento. Sabendo que a água ficará a 10 cm de transbordar e a altura total é de 1,3 m, qual volume de água a piscina terá? A) 30 m³. B) 36 m³. C) 39 m³. D) 42 m³. \n", "Alternativa": "B", "Status Alternativa": "Correta", "Resposta IA": "", "Resposta Apostila": ""}, {"Questão ": 26.0, "Enunciado": "O proprietário de uma chácara decide construir uma piscina de 5 metros de largura por 6 metros de comprimento. Sabendo que a água ficará a 10 cm de transbordar e a altura total é de 1,3 m, qual volume de água a piscina terá? A) 30 m³. B) 36 m³. C) 39 m³. D) 42 m³. \n", "Alternativa": "C", "Status Alternativa": "Incorreta", "Resposta IA": "A resposta está incorreta. Você usou a altura total da piscina, mas a questão diz que a água não chega até a borda, né? Faltam uns centímetros ali em cima.", "Resposta Apostila": "incorreta. A resposta está incorreta porque a alternativa apresenta o resultado do cálculo com a altura total. O correto seria descontar 10 cm da profundidade."}, {"Questão ": 26.0, "Enunciado": "O proprietário de uma chácara decide construir uma piscina de 5 metros de largura por 6 metros de comprimento. Sabendo que a água ficará a 10 cm de transbordar e a altura total é de 1,3 m, qual volume de água a piscina terá? A) 30 m³. B) 36 m³. C) 39 m³. D) 42 m³. \n", "Alternativa": "D", "Status Alternativa": "Incorreta", "Resposta IA": "A resposta está incorreta. As medidas que você usou na sua conta não levam a esse resultado. Dá uma olhada nos dados de novo.", "Resposta Apostila": "incorreta. A resposta está incorreta porque ao realizar o cálculo foi somado 10 cm na profundidade. O correto seria descontar 10 cm da profundidade."}, {"Questão ": 16.0, "Enunciado": "Qual é a resposta correta para a raiz quadrada de √ 23 , com aproximação até centésimos? A) 4,7 B) 479 C) 4,79 D) 4,795 ", "Alternativa": "A", "Status Alternativa": "Incorreta", "Resposta IA": "A resposta está incorreta. Você aproximou só até a primeira casa decimal (décimos), mas a questão pediu até os centésimos, que são duas casas depois da vírgula. ", "Resposta Apostila": "incorreta. A resposta está incorreta porque a alternativa A apresenta a aproximação na casa decimal. O correto seria considerar duas casas"}, {"Questão ": 16.0, "Enunciado": "Qual é a resposta correta para a raiz quadrada de √ 23 , com aproximação até centésimos? A) 4,7 B) 479 C) 4,79 D) 4,795 ", "Alternativa": "B", "Status Alternativa": "Incorreta", "Resposta IA": "A resposta está incorreta. Esse valor é muito maior do que a raiz quadrada de 23. Você provavelmente esqueceu a vírgula ou errou feio na conta! ", "Resposta Apostila": "incorreta. A resposta está incorreta porque na alternativa B o número apresentado não possui vírgula e se refere à centena. O correto seria o número apresentar-se com duas casas à direita da vírgula"}, {"Questão ": 16.0, "Enunciado": "Qual é a resposta correta para a raiz quadrada de √ 23 , com aproximação até centésimos? A) 4,7 B) 479 C) 4,79 D) 4,795 ", "Alternativa": "C", "Status Alternativa": "Correta", "Resposta IA": "", "Resposta Apostila": ""}, {"Questão ": 16.0, "Enunciado": "Qual é a resposta correta para a raiz quadrada de √ 23 , com aproximação até centésimos? A) 4,7 B) 479 C) 4,79 D) 4,795 ", "Alternativa": "D", "Status Alternativa": "Incorreta", "Resposta IA": "A resposta está incorreta. Sua resposta tem três casas decimais (milésimos), mas a questão pediu para aproximar apenas até os centésimos (duas casas depois da vírgula).", "Resposta Apostila": "incorreta. A resposta está incorreta porque a alternativa D apresenta o resultado da raiz com aproximação na casa de milésimos. O correto seria o número apresentar-se com duas casas à direita da vírgula."}, {"Questão ": 5.0, "Enunciado": "Assinale a alternativa que representa corretamente a simplificação da expressão (16x^2 + 24x) / 4x A) 4x + 24x B) 16x + 6x C) 4 + 6x D) 4x + 6 \n", "Alternativa": "A", "Status Alternativa": "Incorreta", "Resposta IA": "A resposta está incorreta. Parece que você só dividiu o primeiro pedaço da expressão (o 16x²) pelo 4x, mas esqueceu de dividir o segundo pedaço (o 24x) também. Tem que dividir tudo que está em cima pelo que está embaixo, tá? ", "Resposta Apostila": "incorreta. A resposta está incorreta porque somente o primeiro termo da expressão foi simplificado. O correto seria simplificar todos os termos."}, {"Questão ": 5.0, "Enunciado": "Assinale a alternativa que representa corretamente a simplificação da expressão (16x^2 + 24x) / 4x A) 4x + 24x B) 16x + 6x C) 4 + 6x D) 4x + 6 \n", "Alternativa": "B", "Status Alternativa": "Incorreta", "Resposta IA": "A resposta está incorreta. Você não simplificou a parte do 16x² dividido por 4x corretamente. E a parte do 24x por 4x ficou meio estranha ali. Foca em dividir cada termo de cima pelo de baixo, um por um.", "Resposta Apostila": "incorreta. A resposta está incorreta porque somente o segundo termo da expressão foi simplificado. O correto seria simplificar todos os termos."}, {"Questão ": 5.0, "Enunciado": "Assinale a alternativa que representa corretamente a simplificação da expressão (16x^2 + 24x) / 4x A) 4x + 24x B) 16x + 6x C) 4 + 6x D) 4x + 6 \n", "Alternativa": "C", "Status Alternativa": "Incorreta", "Resposta IA": "A resposta está incorreta. Quando você dividiu 16x² por 4x, parece que você perdeu um \"x\" pelo caminho. Faltou um \"x\" no primeiro termo depois da divisão. ", "Resposta Apostila": "incorreta. A resposta está incorreta porque somente os números foram simplificados. O correto seria simplificar os números e simplificar a variável ‘x’"}, {"Questão ": 5.0, "Enunciado": "Assinale a alternativa que representa corretamente a simplificação da expressão (16x^2 + 24x) / 4x A) 4x + 24x B) 16x + 6x C) 4 + 6x D) 4x + 6 \n", "Alternativa": "D", "Status Alternativa": "Correta", "Resposta IA": "", "Resposta Apostila": ""}, {"Questão ": 45.0, "Enunciado": "Márcio irá jogar três dados em sequência. Quantas possíveis combinações existem para que os três dados caiam apenas em números ímpares sem repetir os números anteriores? A) 6 B) 9 C) 27 D) 120 ", "Alternativa": "A", "Status Alternativa": "Correta", "Resposta IA": "", "Resposta Apostila": ""}, {"Questão ": 45.0, "Enunciado": "Márcio irá jogar três dados em sequência. Quantas possíveis combinações existem para que os três dados caiam apenas em números ímpares sem repetir os números anteriores? A) 6 B) 9 C) 27 D) 120 ", "Alternativa": "B", "Status Alternativa": "Incorreta", "Resposta IA": "A resposta está incorreta. Se você pensou em 9, deve ter multiplicado 3x3, mas esqueceu que os números não podem repetir ou que tem um terceiro dado na jogada, né?Faltou considerar a restrição de não repetir os números para os três dados. ", "Resposta Apostila": "incorreta. A resposta está incorreta porque a alternativa é calculada com o número de faces ímpares do dado multiplicado por três tentati vas. O correto seria reduzir uma possibilidade a cada lançamento."}, {"Questão ": 45.0, "Enunciado": "Márcio irá jogar três dados em sequência. Quantas possíveis combinações existem para que os três dados caiam apenas em números ímpares sem repetir os números anteriores? A) 6 B) 9 C) 27 D) 120 ", "Alternativa": "C", "Status Alternativa": "Incorreta", "Resposta IA": "A resposta está incorreta. Esse resultado de 27 daria se os números pudessem repetir nos três dados. Mas a questão fala que não pode, então é diferente.", "Resposta Apostila": "incorreta. A resposta está incorreta porque a alternativa apresenta o resultado para que os dados caiam em números ímpares, permitindo que haja repetição. O correto seria não permitir repetição"}, {"Questão ": 45.0, "Enunciado": "Márcio irá jogar três dados em sequência. Quantas possíveis combinações existem para que os três dados caiam apenas em números ímpares sem repetir os números anteriores? A) 6 B) 9 C) 27 D) 120 ", "Alternativa": "D", "Status Alternativa": "Incorreta", "Resposta IA": "A resposta está incorreta. Esse número é bem maior do que o possível só com os números ímpares sem repetição. Revise suas contas e as condições da questão, especialmente as restrições de ser ímpar e não repetir", "Resposta Apostila": "incorreta. A resposta está incorreta porque a alternativa corresponde ao total de combinações incluindo números pares, embora não permita que se repitam os valores obtidos em lançamentos anteriores. O correto seria utilizar somente números ímpares para calcular as possibilidades."}, {"Questão ": 42.0, "Enunciado": "Em um mapa a escala marcada é 1 mm: 1 km. Roberta mediu a distância de 8 centímetros com uma régua, o que em medida real corresponde aA) 8 km.B) 80 km.C) 0,8 km.D) 800 km.", "Alternativa": "A", "Status Alternativa": "Incorreta", "Resposta IA": "A resposta está incorreta. Parece que você confundiu as unidades. A medida no mapa estava em centímetros, mas a escala é em milímetros. Você precisa converter 8 centímetros para milímetros primeiro! ", "Resposta Apostila": "incorreta. A resposta está incorreta porque não foi utilizada a conversão de unidades. O correto seria converter a unidade informada em centímetros para milímetros e fazer o cálculo."}, {"Questão ": 42.0, "Enunciado": "Em um mapa a escala marcada é 1 mm: 1 km. Roberta mediu a distância de 8 centímetros com uma régua, o que em medida real corresponde aA) 8 km.B) 80 km.C) 0,8 km.D) 800 km.", "Alternativa": "B", "Status Alternativa": "Correta", "Resposta IA": "", "Resposta Apostila": ""}, {"Questão ": 42.0, "Enunciado": "Em um mapa a escala marcada é 1 mm: 1 km. Roberta mediu a distância de 8 centímetros com uma régua, o que em medida real corresponde aA) 8 km.B) 80 km.C) 0,8 km.D) 800 km.", "Alternativa": "C", "Status Alternativa": "Incorreta", "Resposta IA": "A resposta está incorreta. Esse valor é muito pequeno. Você errou na conversão das unidades de medida ou na aplicação da escala. Lembra que 1 cm tem 10 mm? ", "Resposta Apostila": " incorreta. A resposta está incorreta porque ao converter centímetros para milímetros o aluno inverteu a escala e, ao invés de multiplicar, dividiu. O correto seria converter a unidade informada em centímetros para milímetros obedecendo a escala: 1 cm = 10 mm"}, {"Questão ": 42.0, "Enunciado": "Em um mapa a escala marcada é 1 mm: 1 km. Roberta mediu a distância de 8 centímetros com uma régua, o que em medida real corresponde aA) 8 km.B) 80 km.C) 0,8 km.D) 800 km.", "Alternativa": "D", "Status Alternativa": "Incorreta", "Resposta IA": "A resposta está incorreta. Esse valor está gigante! Você multiplicou errado ou fez alguma confusão séria na hora de converter os centímetros para milímetros e depois aplicar a escala", "Resposta Apostila": "incorreta. A resposta está incorreta porque houve erro na conversão, a escala é: 1 cm = 10 mm, e o aluno utilizou 1:100"}, {"Questão ": 38.0, "Enunciado": "João caminhava na parte da manhã em direção ao nascer do Sol, quando virou a 90° à direita e seguiu caminhando. Após alguns minutos, João se virou a 180° e notou que caminhava na direção A) Sul. B) Leste. C) Norte. D) Oeste. ", "Alternativa": "A", "Status Alternativa": "Incorreta", "Resposta IA": "A resposta está incorreta. Você deve ter esquecido que ele deu uma volta de 180 graus. Se ele estava indo para o Sul e virou 180 graus, ele mudou completamente de direção", "Resposta Apostila": "incorreta. A resposta está incorreta porque a alternativa apresenta a segunda direção que João tomou. O correto seria determinar a última direção adotada por João."}, {"Questão ": 38.0, "Enunciado": "João caminhava na parte da manhã em direção ao nascer do Sol, quando virou a 90° à direita e seguiu caminhando. Após alguns minutos, João se virou a 180° e notou que caminhava na direção A) Sul. B) Leste. C) Norte. D) Oeste. ", "Alternativa": "B", "Status Alternativa": "Incorreta", "Resposta IA": "A resposta está incorreta. Ele estava indo para o Leste só no começo da caminhada. Depois de virar à direita e depois 180 graus, ele não estaria mais nessa direção. ", "Resposta Apostila": "incorreta. A resposta está incorreta porque a alternativa apresenta a primeira direção que foi seguida por João. O correto seria considerar as direções adotadas por João."}, {"Questão ": 38.0, "Enunciado": "João caminhava na parte da manhã em direção ao nascer do Sol, quando virou a 90° à direita e seguiu caminhando. Após alguns minutos, João se virou a 180° e notou que caminhava na direção A) Sul. B) Leste. C) Norte. D) Oeste. ", "Alternativa": "C", "Status Alternativa": "Correta", "Resposta IA": "", "Resposta Apostila": ""}, {"Questão ": 38.0, "Enunciado": "João caminhava na parte da manhã em direção ao nascer do Sol, quando virou a 90° à direita e seguiu caminhando. Após alguns minutos, João se virou a 180° e notou que caminhava na direção A) Sul. B) Leste. C) Norte. D) Oeste. ", "Alternativa": "D", "Status Alternativa": "Incorreta", "Resposta IA": "A resposta está incorreta. Se ele estava indo para o Norte e virou 180 graus, ele estaria indo para o Sul, não para o Oeste. A direção Oeste seria se ele virasse 90 graus para a esquerda do Norte, por exemplo.", "Resposta Apostila": "incorreta. A resposta está incorreta porque a alternativa apresenta um trajeto sem o segundo movimento de João. O correto seria considerar as direções adotadas por João."}, {"Questão ": 37.0, "Enunciado": "Quando encaixamos quatro triângulos retângulo isósceles iguais, unindo as laterais de 45° e os ângulos de 90° no centro, formamos o polígono A) retângulo. B) quadrado. C) hexágono. D) pentágono. ", "Alternativa": "A", "Status Alternativa": "Incorreta", "Resposta IA": "A resposta está incorreta. Embora um quadrado seja um tipo de retângulo (por ter 4 ângulos de 90º), a figura formada por esses triângulos tem todos os lados iguais, tornando-a especificamente um quadrado, que é uma descrição mais precisa. ", "Resposta Apostila": "incorreta. A resposta está incorreta porque a alternativa se refere à união de dois triângulos retângulo isósceles. O correto seria que a figura seja representada por 4 triângulos"}, {"Questão ": 37.0, "Enunciado": "Quando encaixamos quatro triângulos retângulo isósceles iguais, unindo as laterais de 45° e os ângulos de 90° no centro, formamos o polígono A) retângulo. B) quadrado. C) hexágono. D) pentágono. ", "Alternativa": "B", "Status Alternativa": "Correta", "Resposta IA": "", "Resposta Apostila": ""}, {"Questão ": 37.0, "Enunciado": "Quando encaixamos quatro triângulos retângulo isósceles iguais, unindo as laterais de 45° e os ângulos de 90° no centro, formamos o polígono A) retângulo. B) quadrado. C) hexágono. D) pentágono. ", "Alternativa": "C", "Status Alternativa": "Incorreta", "Resposta IA": "A resposta está incorreta. Um hexágono tem seis lados. Quando você junta quatro triângulos isósceles desse jeito, a figura que se forma na parte de fora terá apenas quatro lados. ", "Resposta Apostila": "incorreta. A alternativa apresenta a resposta para 6 triângulos equiláteros encaixados. O correto seria que a figura seja representada por 4 triângulos"}, {"Questão ": 37.0, "Enunciado": "Quando encaixamos quatro triângulos retângulo isósceles iguais, unindo as laterais de 45° e os ângulos de 90° no centro, formamos o polígono A) retângulo. B) quadrado. C) hexágono. D) pentágono. ", "Alternativa": "D", "Status Alternativa": "Incorreta", "Resposta IA": "A resposta está incorreta. Um pentágono tem cinco lados. Com quatro triângulos, o polígono que se forma na parte de fora terá quatro lados, não cinco", "Resposta Apostila": "incorreta. A resposta está incorreta porque da figura pode-se extrair até 5 triângulos. Para formar um pentágono são necessários 5 triângulos encaixados. O correto seria que a figura seja representada por 4 triângulos"}, {"Questão ": 13.0, "Enunciado": "Uma quadra de futebol, de 40 metros de comprimento e 20 metros de largura, está sendo utilizada pelo 9º ano A e pelo 9º ano B, cada classe em uma metade. Qual é a área da quadra destinada a cada turma do 9º ano?A) 120 m².B) 200 m².C) 400 m².D) 800 m².", "Alternativa": "A", "Status Alternativa": "Incorreta", "Resposta IA": "Você somou os lados e multiplicou por 2, tipo o perímetro, mas aqui a gente quer a área! ", "Resposta Apostila": "incorreta. A resposta está incorreta porque a alternativa apresenta o cálculo do perímetro total da quadra. O correto seria calcular a área da metade da quadra."}, {"Questão ": 13.0, "Enunciado": "Uma quadra de futebol, de 40 metros de comprimento e 20 metros de largura, está sendo utilizada pelo 9º ano A e pelo 9º ano B, cada classe em uma metade. Qual é a área da quadra destinada a cada turma do 9º ano?A) 120 m².B) 200 m².C) 400 m².D) 800 m².", "Alternativa": "B", "Status Alternativa": "Incorreta", "Resposta IA": "Esse valor é bem menor, você deve ter dividido algo antes da hora ou misturou as contas.", "Resposta Apostila": "incorreta. A resposta está incorreta porque ambas as dimensões foram reduzidas pela metade. O correto será reduzir pela metade apenas uma das dimensões para encontrar metade da área da quadra."}, {"Questão ": 13.0, "Enunciado": "Uma quadra de futebol, de 40 metros de comprimento e 20 metros de largura, está sendo utilizada pelo 9º ano A e pelo 9º ano B, cada classe em uma metade. Qual é a área da quadra destinada a cada turma do 9º ano?A) 120 m².B) 200 m².C) 400 m².D) 800 m².", "Alternativa": "C", "Status Alternativa": "Correta", "Resposta IA": "", "Resposta Apostila": ""}, {"Questão ": 13.0, "Enunciado": "Uma quadra de futebol, de 40 metros de comprimento e 20 metros de largura, está sendo utilizada pelo 9º ano A e pelo 9º ano B, cada classe em uma metade. Qual é a área da quadra destinada a cada turma do 9º ano?A) 120 m².B) 200 m².C) 400 m².D) 800 m².", "Alternativa": "D", "Status Alternativa": "Incorreta", "Resposta IA": "Essa é a área da quadra inteira, mas a pergunta quer a parte de cada turma. Tem mais um passinho aí!", "Resposta Apostila": "incorreta. A resposta está incorreta porque a alternativa mostra o valor da área total da qua dra. O correto seria calcular a área da metade da quadra."}, {"Questão ": 2.0, "Enunciado": "João comprou uma pizza de 8 fatias e comeu 5 pedaços. A fração que indica corretamente o total consumido é: A) 5/1 B) 1/5 C) 8/5 D) 5/8", "Alternativa": "A", "Status Alternativa": "Incorreta", "Resposta IA": "Essa fração seria se o João tivesse comido 5 pizzas inteiras e tivesse só uma \"unidade\" de pizza pra contar, o que não faz sentido aqui.", "Resposta Apostila": "incorreta. A resposta está incorreta porque a alternativa representa 5 pizzas inteiras. O correto seriam apenas 5 pedaços de uma pizza."}, {"Questão ": 2.0, "Enunciado": "João comprou uma pizza de 8 fatias e comeu 5 pedaços. A fração que indica corretamente o total consumido é: A) 5/1 B) 1/5 C) 8/5 D) 5/8", "Alternativa": "B", "Status Alternativa": "Incorreta", "Resposta IA": "Aqui você inverteu a ordem da contagem, ou pensou no que sobrou, mas a gente quer o que ele comeu sobre o total. ", "Resposta Apostila": "incorreta. A resposta está incorreta porque temos aqui uma divisão que representa uma parte de 5. O correto seriam 5 partes de uma pizza que foi dividida em 8 partes."}, {"Questão ": 2.0, "Enunciado": "João comprou uma pizza de 8 fatias e comeu 5 pedaços. A fração que indica corretamente o total consumido é: A) 5/1 B) 1/5 C) 8/5 D) 5/8", "Alternativa": "C", "Status Alternativa": "Incorreta", "Resposta IA": "Essa fração tá invertida! Pensa que o número de fatias que ele comeu sempre vai em cima.", "Resposta Apostila": "incorreta. A resposta está incorreta porque a fração representa 8 inteiros sendo divididos por 5.  O correto seriam 5 partes de uma única pizza que foi dividida em 8 partes."}, {"Questão ": 2.0, "Enunciado": "João comprou uma pizza de 8 fatias e comeu 5 pedaços. A fração que indica corretamente o total consumido é: A) 5/1 B) 1/5 C) 8/5 D) 5/8", "Alternativa": "D", "Status Alternativa": "Correta", "Resposta IA": "", "Resposta Apostila": ""}, {"Questão ": 22.0, "Enunciado": "O x no sistema linear 3y – x = 10\ny + 2x = 22 é igual a A) 2 B) 6 C) 8 D) 10", "Alternativa": "A", "Status Alternativa": "Incorreta", "Resposta IA": "Se você jogar o 2 no lugar do x nas duas equações, elas não vão dar o mesmo resultado para o y, então ele não é a solução.", "Resposta Apostila": "incorreta. A resposta está incorreta porque a alternativa é a diferença entre os valores x e y. O correto seria calcular o valor de uma variá vel para substituí-lo em uma das equações e obter o valor da outra variável."}, {"Questão ": 22.0, "Enunciado": "O x no sistema linear 3y – x = 10\ny + 2x = 22 é igual a A) 2 B) 6 C) 8 D) 10", "Alternativa": "B", "Status Alternativa": "Incorreta", "Resposta IA": "Tentar o 6 como x não vai fazer as duas equações baterem, ou seja, não é a resposta que funciona para o sistema.", "Resposta Apostila": "incorreta. A resposta está incorreta porque o valor apresentado na alternativa se refere ao y do sistema. O correto seria calcular o valor de uma variável para substituí-lo em uma das equações e obter o valor da outra variável."}, {"Questão ": 22.0, "Enunciado": "O x no sistema linear 3y – x = 10\ny + 2x = 22 é igual a A) 2 B) 6 C) 8 D) 10", "Alternativa": "C", "Status Alternativa": "Correta", "Resposta IA": "", "Resposta Apostila": ""}, {"Questão ": 22.0, "Enunciado": "O x no sistema linear 3y – x = 10\ny + 2x = 22 é igual a A) 2 B) 6 C) 8 D) 10", "Alternativa": "D", "Status Alternativa": "Incorreta", "Resposta IA": "Se o x fosse 10, as contas das duas equações não dariam certo juntas, ele não satisfaz o sistema.", "Resposta Apostila": "incorreta. A resposta está incorreta porque a alternativa apresenta o resultado da primeira equação. O correto seria calcular o valor de uma variável para substituí-lo em uma das equações e obter o valor da outra variável."}, {"Questão ": 28.0, "Enunciado": "A medida da ponta de um prédio até o final de sua sombra é igual a 40 metros e a sombra forma um ângulo de 50° em relação ao solo Utilizando 0,8 para sen 50°, assinale a alternativa que corresponde à altura H do prédio. A) 32 m. B) 50 m. C) 62,5 m. D) 90 m", "Alternativa": "A", "Status Alternativa": "Correta", "Resposta IA": "", "Resposta Apostila": ""}, {"Questão ": 28.0, "Enunciado": "A medida da ponta de um prédio até o final de sua sombra é igual a 40 metros e a sombra forma um ângulo de 50° em relação ao solo Utilizando 0,8 para sen 50°, assinale a alternativa que corresponde à altura H do prédio. A) 32 m. B) 50 m. C) 62,5 m. D) 90 m", "Alternativa": "B", "Status Alternativa": "Incorreta", "Resposta IA": "Você deve ter dividido a hipotenusa pelo seno, mas na verdade a gente precisa multiplicar pra encontrar a altura.", "Resposta Apostila": "incorreta. A resposta está incorreta porque foi feita uma divisão entre a hipotenusa e o valor do sen 50°. O correto seria multiplicar a hipo tenusa pelo sen 50°."}, {"Questão ": 28.0, "Enunciado": "A medida da ponta de um prédio até o final de sua sombra é igual a 40 metros e a sombra forma um ângulo de 50° em relação ao solo Utilizando 0,8 para sen 50°, assinale a alternativa que corresponde à altura H do prédio. A) 32 m. B) 50 m. C) 62,5 m. D) 90 m", "Alternativa": "C", "Status Alternativa": "Incorreta", "Resposta IA": "Parece que você usou outra função trigonométrica (tipo cosseno) ou confundiu os lados do triângulo na hora de fazer a conta, misturando tudo.", "Resposta Apostila": "incorreta. A resposta está incorreta porque o aluno fez uma divisão entre o valor do ângulo (50) e o valor do sen 50°. O correto seria mul tiplicar a hipotenusa pelo sen 50° (0,8)"}, {"Questão ": 28.0, "Enunciado": "A medida da ponta de um prédio até o final de sua sombra é igual a 40 metros e a sombra forma um ângulo de 50° em relação ao solo Utilizando 0,8 para sen 50°, assinale a alternativa que corresponde à altura H do prédio. A) 32 m. B) 50 m. C) 62,5 m. D) 90 m", "Alternativa": "D", "Status Alternativa": "Incorreta", "Resposta IA": "Você somou os números que aparecem no problema, mas pra achar a altura com um ângulo, a gente precisa de trigonometria!", "Resposta Apostila": "incorreta. A resposta está incorreta porque a alternativa mostra simplesmente o resultado da soma entre hipotenusa e o ângulo de 50°."}, {"Questão ": 23.0, "Enunciado": "Um triângulo retângulo possui catetos de mesma medida; logo os ângulos agudos desse triângulo A) medem 45°. B) somam 180°. C) medem 30° e 60°.  D) medem 40° e 50°.", "Alternativa": "A", "Status Alternativa": "Correta", "Resposta IA": "", "Resposta Apostila": ""}, {"Questão ": 23.0, "Enunciado": "Um triângulo retângulo possui catetos de mesma medida; logo os ângulos agudos desse triângulo A) medem 45°. B) somam 180°. C) medem 30° e 60°.  D) medem 40° e 50°.", "Alternativa": "B", "Status Alternativa": "Incorreta", "Resposta IA": "A soma de todos os ângulos de qualquer triângulo é 180°, mas a pergunta é sobre a soma só dos ângulos agudos, que é 90° num triângulo retângulo.", "Resposta Apostila": "incorreta. A resposta está incorreta porque a al ternativa apresenta apenas a somatória das me didas internas de um triângulo. O correto seria apresentar os ângulos formados pelos catetos."}, {"Questão ": 23.0, "Enunciado": "Um triângulo retângulo possui catetos de mesma medida; logo os ângulos agudos desse triângulo A) medem 45°. B) somam 180°. C) medem 30° e 60°.  D) medem 40° e 50°.", "Alternativa": "C", "Status Alternativa": "Incorreta", "Resposta IA": "Esses ângulos são de um tipo específico de triângulo retângulo, mas nele os catetos não têm a mesma medida. Se os catetos são iguais, os ângulos agudos também precisam ser iguais.", "Resposta Apostila": "incorreta. A resposta está incorreta porque a alternativa apresenta somente uma possibi lidade de combinações de ângulos agudos quando o triângulo retângulo possui lados di ferentes. O correto seria apresentar os ângu los formados pelos catetos de igual tamanho."}, {"Questão ": 23.0, "Enunciado": "Um triângulo retângulo possui catetos de mesma medida; logo os ângulos agudos desse triângulo A) medem 45°. B) somam 180°. C) medem 30° e 60°.  D) medem 40° e 50°.", "Alternativa": "D", "Status Alternativa": "Incorreta", "Resposta IA": "Embora a soma desses ângulos dê 90°, eles não são iguais. Pra um triângulo retângulo ter catetos iguais, os dois ângulos agudos precisam ter a mesma medida.", "Resposta Apostila": "incorreta. A resposta está incorreta porque a al ternativa também apresenta uma possibilidade de medidas de ângulos formados pelos cate tos com medidas diferentes para triângulos re tângulos. O correto seria apresentar os ângu los formados pelos catetos de igual tamanho."}, {"Questão ": 41.0, "Enunciado": "Um recipiente cilíndrico com 17 centímetros de altura e 8 centímetros de diâmetro possui volume interno de A) 200 cm³. B) 427 cm³. C) 854 cm³. D) 3 416 cm³", "Alternativa": "A", "Status Alternativa": "Incorreta", "Resposta IA": "Esse valor é muito pequeno, parece que você esqueceu de elevar o raio ao quadrado ou usou os números errados na fórmula.", "Resposta Apostila": "incorreta. A resposta está incorreta porque a alternativa apresenta o resultado da área de um círculo de raio = 8. O correto seria deter minar o raio para calcular a área e multiplicar pela altura para obter o volume."}, {"Questão ": 41.0, "Enunciado": "Um recipiente cilíndrico com 17 centímetros de altura e 8 centímetros de diâmetro possui volume interno de A) 200 cm³. B) 427 cm³. C) 854 cm³. D) 3 416 cm³", "Alternativa": "B", "Status Alternativa": "Incorreta", "Resposta IA": "Você deve ter feito alguma confusão com o raio ou dividiu o resultado por dois, mas a fórmula é bem direta.", "Resposta Apostila": "incorreta. A resposta está incorreta porque o valor encontrado é resultado do produto entre diâmetro, altura e o valor de p. O correto seria determinar o raio para calcular a área e multi plicar pela altura para obter o volume"}, {"Questão ": 41.0, "Enunciado": "Um recipiente cilíndrico com 17 centímetros de altura e 8 centímetros de diâmetro possui volume interno de A) 200 cm³. B) 427 cm³. C) 854 cm³. D) 3 416 cm³", "Alternativa": "C", "Status Alternativa": "Correta", "Resposta IA": "", "Resposta Apostila": ""}, {"Questão ": 41.0, "Enunciado": "Um recipiente cilíndrico com 17 centímetros de altura e 8 centímetros de diâmetro possui volume interno de A) 200 cm³. B) 427 cm³. C) 854 cm³. D) 3 416 cm³", "Alternativa": "D", "Status Alternativa": "Incorreta", "Resposta IA": "Essa resposta é bem grande! Você provavelmente usou o diâmetro inteiro (8 cm) no lugar do raio na fórmula e elevou ele ao quadrado, o que faz a conta ficar gigante.", "Resposta Apostila": "incorreta. A resposta está incorreta porque embora a alternativa corresponda ao cálculo do volume, utiliza-se o valor do diâmetro no lugar do raio"}, {"Questão ": 30.0, "Enunciado": "Em um lançamento de dado a probabilidade de cair em uma face cujo número seja par é A) 1/2  B) 1/3 C) 1/6  D) 3/1 ", "Alternativa": "A", "Status Alternativa": "Correta", "Resposta IA": "", "Resposta Apostila": ""}, {"Questão ": 30.0, "Enunciado": "Em um lançamento de dado a probabilidade de cair em uma face cujo número seja par é A) 1/2  B) 1/3 C) 1/6  D) 3/1 ", "Alternativa": "B", "Status Alternativa": "Incorreta", "Resposta IA": "Essa probabilidade seria se tivesse só 2 números pares no dado ou se você dividiu errado, tipo 2/6. Mas tem 3 pares de 6 números.", "Resposta Apostila": "Incorreta. A resposta está incorreta porque a alternativa utiliza a quantidade de números pares como denominador. O correto seria con siderar a quantidade de faces pares existentes em relação ao total de faces do dado."}, {"Questão ": 30.0, "Enunciado": "Em um lançamento de dado a probabilidade de cair em uma face cujo número seja par é A) 1/2  B) 1/3 C) 1/6  D) 3/1 ", "Alternativa": "C", "Status Alternativa": "Incorreta", "Resposta IA": "Essa seria a chance de cair um número específico, tipo só o número 2. A gente quer a chance de cair qualquer número par.", "Resposta Apostila": "incorreta. A resposta está incorreta porque o re sultado mostra a probabilidade de cair um nú mero específico entre os seis do dado. O corre to seria considerar a quantidade de faces pares existentes em relação ao total de faces do dado."}, {"Questão ": 30.0, "Enunciado": "Em um lançamento de dado a probabilidade de cair em uma face cujo número seja par é A) 1/2  B) 1/3 C) 1/6  D) 3/1 ", "Alternativa": "D", "Status Alternativa": "Incorreta", "Resposta IA": "Essa fração tá totalmente de ponta-cabeça e ainda seria maior que 1, o que não pode ser uma probabilidade! A parte de cima é sempre menor ou igual à de baixo.", "Resposta Apostila": "incorreta. A resposta está incorreta porque a alternativa mostra a quantidade de números pares existentes em 1 dado."}, {"Questão ": 25.0, "Enunciado": "Uma bola de futebol oficial possui raio de aproximadamente 11 centímetros, logo uma bola oficial possui diâmetro de A) 14,14 centímetros.B) 22 centímetros.C) 5,5 centímetros.D) 34,54 centímetros", "Alternativa": "A", "Status Alternativa": "Incorreta", "Resposta IA": "Esse número não é o dobro do raio e não tem relação direta com o diâmetro.", "Resposta Apostila": "incorreta. A resposta está incorreta porque a alternativa representa o resultado da soma do raio com número p = 3,14. O correto seria calcu lar o diâmetro da circunferência partindo do raio."}, {"Questão ": 25.0, "Enunciado": "Uma bola de futebol oficial possui raio de aproximadamente 11 centímetros, logo uma bola oficial possui diâmetro de A) 14,14 centímetros.B) 22 centímetros.C) 5,5 centímetros.D) 34,54 centímetros", "Alternativa": "B", "Status Alternativa": "Correta", "Resposta IA": "", "Resposta Apostila": ""}, {"Questão ": 25.0, "Enunciado": "Uma bola de futebol oficial possui raio de aproximadamente 11 centímetros, logo uma bola oficial possui diâmetro de A) 14,14 centímetros.B) 22 centímetros.C) 5,5 centímetros.D) 34,54 centímetros", "Alternativa": "C", "Status Alternativa": "Incorreta", "Resposta IA": "Você dividiu o raio por dois, mas o diâmetro é o caminho inteiro de um lado ao outro da bola, passando pelo meio, então é sempre maior que o raio.", "Resposta Apostila": "incorreta. A resposta está incorreta porque a alternativa aplica a fórmula de conversão de forma contrária, dividindo o raio por dois. O correto seria multiplicar o raio por dois."}, {"Questão ": 25.0, "Enunciado": "Uma bola de futebol oficial possui raio de aproximadamente 11 centímetros, logo uma bola oficial possui diâmetro de A) 14,14 centímetros.B) 22 centímetros.C) 5,5 centímetros.D) 34,54 centímetros", "Alternativa": "D", "Status Alternativa": "Incorreta", "Resposta IA": "Esse valor é muito alto, parece que você fez outra conta, talvez envolvendo pi, mas o diâmetro é bem mais simples.", "Resposta Apostila": "incorreta. A resposta está incorreta porque o resultado apresentado é o raio da bola multi plicado por p = 3,14"}, {"Questão ": 27.0, "Enunciado": "Um aro de basquete não oficial, colocado no colégio de Antônio, possui o diâmetro de 46 centímetros. Qual é a área interna do aro? A) 1 661 cm². B) 3 322 cm². C) 6 644 cm². D) 144,4 cm².", "Alternativa": "A", "Status Alternativa": "Correta", "Resposta IA": "", "Resposta Apostila": ""}, {"Questão ": 27.0, "Enunciado": "Um aro de basquete não oficial, colocado no colégio de Antônio, possui o diâmetro de 46 centímetros. Qual é a área interna do aro? A) 1 661 cm². B) 3 322 cm². C) 6 644 cm². D) 144,4 cm².", "Alternativa": "B", "Status Alternativa": "Incorreta", "Resposta IA": "Esse valor é o dobro da área correta. Parece que você calculou a área e depois multiplicou por 2, mas não precisa fazer isso.", "Resposta Apostila": "incorreta. A resposta está incorreta porque a al ternativa apresenta o cálculo da área utilizando o diâmetro no lugar do raio, dividindo por dois no final do cálculo. O correto seria determinar o raio para aplicar a fórmula da área do círculo."}, {"Questão ": 27.0, "Enunciado": "Um aro de basquete não oficial, colocado no colégio de Antônio, possui o diâmetro de 46 centímetros. Qual é a área interna do aro? A) 1 661 cm². B) 3 322 cm². C) 6 644 cm². D) 144,4 cm².", "Alternativa": "C", "Status Alternativa": "Incorreta", "Resposta IA": "Essa resposta é muito grande! Você deve ter usado o diâmetro (46 cm) no lugar do raio na fórmula, o que deixa a área quatro vezes maior do que deveria.", "Resposta Apostila": "incorreta. A resposta está incorreta porque o cál culo realizado é o da área do círculo com o diâ metro no lugar do raio. O correto seria determinar o raio para aplicar a fórmula da área do círculo."}, {"Questão ": 27.0, "Enunciado": "Um aro de basquete não oficial, colocado no colégio de Antônio, possui o diâmetro de 46 centímetros. Qual é a área interna do aro? A) 1 661 cm². B) 3 322 cm². C) 6 644 cm². D) 144,4 cm².", "Alternativa": "D", "Status Alternativa": "Incorreta", "Resposta IA": "Esse valor é muito pequeno para ser a área. Parece que você calculou o comprimento do aro (o perímetro), e não a área que preenche o espaço interno dele.", "Resposta Apostila": "incorreta. A resposta está incorreta porque a alternativa apresenta o perímetro do aro de basquete."}, {"Questão ": 21.0, "Enunciado": "Considerando que Tiago gastou 3/7 da metade de sua mesada para comprar uma camiseta no valor de R$ 42,00, qual é o valor da mesada que Tiago ganha? A) R$ 49,00. B) R$ 84,00. C) R$ 98,00. D) R$ 196,00.", "Alternativa": "A", "Status Alternativa": "Incorreta", "Resposta IA": "Parece que você calculou o valor da metade da mesada e depois dividiu por dois de novo, ou se confundiu em alguma etapa. Fique ligado no que significa \"da metade\"!", "Resposta Apostila": "incorreta. A resposta está incorreta porque a alternativa apresenta o valor de 50% da meta de da mesada. O correto seria multiplicar por 2 a metade da mesada, obtendo o valor total."}, {"Questão ": 21.0, "Enunciado": "Considerando que Tiago gastou 3/7 da metade de sua mesada para comprar uma camiseta no valor de R$ 42,00, qual é o valor da mesada que Tiago ganha? A) R$ 49,00. B) R$ 84,00. C) R$ 98,00. D) R$ 196,00.", "Alternativa": "B", "Status Alternativa": "Incorreta", "Resposta IA": "Você deve ter multiplicado o valor da camiseta por 2, mas esqueceu que o R$ 42,00 representa só 3/7 da metade da mesada, não a metade inteira.", "Resposta Apostila": "incorreta. A resposta está incorreta porque o resultado corresponde ao valor da camiseta multiplicado por dois. O correto seria encontrar o valor da metade da mesada e multiplicar por 2, obtendo o valor total."}, {"Questão ": 21.0, "Enunciado": "Considerando que Tiago gastou 3/7 da metade de sua mesada para comprar uma camiseta no valor de R$ 42,00, qual é o valor da mesada que Tiago ganha? A) R$ 49,00. B) R$ 84,00. C) R$ 98,00. D) R$ 196,00.", "Alternativa": "C", "Status Alternativa": "Incorreta", "Resposta IA": "Você chegou no valor da metade da mesada do Tiago, o que é um baita avanço! Mas a pergunta quer o valor da mesada completa, então falta um último passo.", "Resposta Apostila": "incorreta. A resposta está incorreta porque o valor corresponde à metade do valor da me sada; seria necessário continuar o cálculo e multiplicar por dois para obter o total do valor."}, {"Questão ": 21.0, "Enunciado": "Considerando que Tiago gastou 3/7 da metade de sua mesada para comprar uma camiseta no valor de R$ 42,00, qual é o valor da mesada que Tiago ganha? A) R$ 49,00. B) R$ 84,00. C) R$ 98,00. D) R$ 196,00.", "Alternativa": "D", "Status Alternativa": "Correta", "Resposta IA": "", "Resposta Apostila": ""}, {"Questão ": 4.0, "Enunciado": "A soma do polinômio 4x^2 + 2x + 1 com o polinômio x^2 – 2x + 1 resulta no polinômio A) 5x^2 + 1 B) 5x^2 + 2 C) 5x^4 + 2 D) 5x^4 – 4^x + 1", "Alternativa": "A", "Status Alternativa": "Incorreta", "Resposta IA": "Você somou certinho o x², mas o número solto (o \"termo independente\") não ficou certo. Tenta somar os números que não têm x.", "Resposta Apostila": "incorreta. A resposta está incorreta porque o cálculo foi realizado sem considerar a soma do número 1 no último termo. O correto seria efetuar a soma de todos os termos, cada um com o seu semelhante."}, {"Questão ": 4.0, "Enunciado": "A soma do polinômio 4x^2 + 2x + 1 com o polinômio x^2 – 2x + 1 resulta no polinômio A) 5x^2 + 1 B) 5x^2 + 2 C) 5x^4 + 2 D) 5x^4 – 4^x + 1", "Alternativa": "B", "Status Alternativa": "Correta", "Resposta IA": "", "Resposta Apostila": ""}, {"Questão ": 4.0, "Enunciado": "A soma do polinômio 4x^2 + 2x + 1 com o polinômio x^2 – 2x + 1 resulta no polinômio A) 5x^2 + 1 B) 5x^2 + 2 C) 5x^4 + 2 D) 5x^4 – 4^x + 1", "Alternativa": "C", "Status Alternativa": "Incorreta", "Resposta IA": "Opa! Ao somar polinômios, a gente só soma os números que estão na frente das letras iguais com os mesmos expoentes. Você elevou o x² a outro expoente, e isso não pode!", "Resposta Apostila": "incorreta. A resposta está incorreta porque, embora os termos semelhantes sejam soma dos corretamente, os expoentes são somados também. O correto seria manter o expoente inalterado por se tratar de uma soma de ter mos semelhantes."}, {"Questão ": 4.0, "Enunciado": "A soma do polinômio 4x^2 + 2x + 1 com o polinômio x^2 – 2x + 1 resulta no polinômio A) 5x^2 + 1 B) 5x^2 + 2 C) 5x^4 + 2 D) 5x^4 – 4^x + 1", "Alternativa": "D", "Status Alternativa": "Incorreta", "Resposta IA": "Essa aqui tá bem confusa! Na soma de polinômios, a gente não muda os expoentes do x e a parte do meio ficou totalmente diferente.", "Resposta Apostila": "incorreta. A resposta está incorreta porque os expoentes foram somados, o sinal do segun do termo não foi respeitado e o terceiro ter mo não foi somado. O correto seria efetuar a soma de todos os termos, cada um com o seu semelhante, respeitar os sinais e manter o ex poente inalterado por se tratar de uma soma."}, {"Questão ": 1.0, "Enunciado": "O número 3 também pode ser representado por A) 1^3 B) 1/3 C) 6/2 D) √6", "Alternativa": "A", "Status Alternativa": "Incorreta", "Resposta IA": "1 elevado a qualquer potência é sempre 1, então 1³ é igual a 1, e não 3.", "Resposta Apostila": "incorreta. A resposta está incorreta porque essa operação significa multiplicar a base 1 por ela mesma três vezes. O correto seria uma multiplicação que tivesse como resultado o número 3."}, {"Questão ": 1.0, "Enunciado": "O número 3 também pode ser representado por A) 1^3 B) 1/3 C) 6/2 D) √6", "Alternativa": "B", "Status Alternativa": "Incorreta", "Resposta IA": "1/3 é uma fração que representa um terço, não o número inteiro 3.", "Resposta Apostila": "incorreta. A resposta está incorreta porque essa operação pede que o aluno efetue uma divisão, e o resultado final não é três. O corre to seria que a divisão tivesse como resultado o número 3."}, {"Questão ": 1.0, "Enunciado": "O número 3 também pode ser representado por A) 1^3 B) 1/3 C) 6/2 D) √6", "Alternativa": "C", "Status Alternativa": "Correta", "Resposta IA": "", "Resposta Apostila": ""}, {"Questão ": 1.0, "Enunciado": "O número 3 também pode ser representado por A) 1^3 B) 1/3 C) 6/2 D) √6", "Alternativa": "D", "Status Alternativa": "Incorreta", "Resposta IA": "A raiz quadrada de 6 dá um número com vírgula, tipo 2,44..., que não é igual a 3.", "Resposta Apostila": "incorreta. A resposta está incorreta porque essa operação não é uma divisão, portanto novamente o resultado não é três. O correto seria que a divisão tivesse como resultado o número 3."}, {"Questão ": 36.0, "Enunciado": "Um veículo consome 12 litros de etanol a cada 84 quilômetros. Considerando que o preço do litro é  R$ 2,30, quantos quilômetros o carro percorre sabendo-se que foi abastecido com R$ 103,50? A) 315 km. B) 399 km. C) 540 km. D) 1 008 km", "Alternativa": "A", "Status Alternativa": "Incorreta", "Resposta IA": "", "Resposta Apostila": ""}, {"Questão ": 36.0, "Enunciado": "Um veículo consome 12 litros de etanol a cada 84 quilômetros. Considerando que o preço do litro é  R$ 2,30, quantos quilômetros o carro percorre sabendo-se que foi abastecido com R$ 103,50? A) 315 km. B) 399 km. C) 540 km. D) 1 008 km", "Alternativa": "B", "Status Alternativa": "Correta", "Resposta IA": "Você deve ter feito alguma conta errada ou usado a proporção de forma invertida em algum momento, resultando em um valor diferente", "Resposta Apostila": "incorreta. A resposta está incorreta porque nessa alternativa a quantidade de quilômetros que podem ser percorridos é somada aos 84 quilômetros no parâmetro citado no enuncia do. O correto seria calcular a quantidade de litros abastecida e, em seguida, o valor total de quilômetros que poderia ser percorrido."}, {"Questão ": 36.0, "Enunciado": "Um veículo consome 12 litros de etanol a cada 84 quilômetros. Considerando que o preço do litro é  R$ 2,30, quantos quilômetros o carro percorre sabendo-se que foi abastecido com R$ 103,50? A) 315 km. B) 399 km. C) 540 km. D) 1 008 km", "Alternativa": "C", "Status Alternativa": "Correta", "Resposta IA": "Você calculou a quantidade de litros comprados certinho, mas depois multiplicou pelo número de litros que o carro consome por trecho, e não pela autonomia em quilômetros por litro. Faltou usar o \"84 km\" corretamente.", "Resposta Apostila": "incorreta. A resposta está incorreta porque o aluno calcula a quantidade de litros inicial mente abastecida, mas multiplica erradamen te pelo consumo de referência do enunciado. O correto seria calcular a quantidade de litros abastecida e, em seguida, o valor total de qui lômetros que poderia ser percorrido, com essa quantidade de litros."}, {"Questão ": 36.0, "Enunciado": "Um veículo consome 12 litros de etanol a cada 84 quilômetros. Considerando que o preço do litro é  R$ 2,30, quantos quilômetros o carro percorre sabendo-se que foi abastecido com R$ 103,50? A) 315 km. B) 399 km. C) 540 km. D) 1 008 km", "Alternativa": "D", "Status Alternativa": "Correta", "Resposta IA": "Você multiplicou 12 litros por 84 km, o que daria a autonomia de um único trecho de consumo. Mas o carro rodou muito mais, já que foi abastecido com uma quantia bem maior que 12 litros. Faltou incluir o dinheiro e o preço do combustível na conta.", "Resposta Apostila": "incorreta. A resposta está incorreta porque a al ternativa apresenta o resultado da multiplicação direta entre consumo e espaço percorrido infor mados no enunciado. O correto seria calcular a quantidade de litros abastecida e, em seguida, o valor total de quilômetros que poderia ser percorrido com essa quantidade de litros"}];
+    const container = document.getElementById("accordionContainer");
+    const searchInput = document.getElementById("searchInput");
+    const countDisplay = document.getElementById("countDisplay");
+    const toggleAllBtn = document.getElementById("toggleAllBtn");
+    
+    let isAllExpanded = false;
+
+    function renderAccordion(data) {
+        container.innerHTML = "";
+        
+        // Group data by "Questão"
+        const grouped = {};
+        data.forEach(row => {
+            const qKey = row["Questão "] || row["Questão"] || "Sem identificação";
+            const qKeyClean = String(qKey).trim();
+            
+            if (!qKeyClean) return;
+
+            if (!grouped[qKeyClean]) {
+                grouped[qKeyClean] = {
+                    enunciado: row["Enunciado"] || "",
+                    alternativas: []
+                };
+            }
+            grouped[qKeyClean].alternativas.push(row);
+        });
+
+        const keys = Object.keys(grouped);
+        countDisplay.textContent = keys.length;
+
+        if (keys.length === 0) {
+            container.innerHTML = "<div style='text-align: center; padding: 40px; background: #fff; border-radius: 8px;'>Nenhum resultado encontrado.</div>";
+            return;
+        }
+
+        keys.forEach(q => {
+            const qData = grouped[q];
+            
+            const item = document.createElement("div");
+            item.className = "accordion-item";
+
+            // Header
+            const header = document.createElement("div");
+            header.className = "accordion-header";
+            
+            // Format statement for inline title
+            let cleanEnunciado = qData.enunciado.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
+            
+            header.innerHTML = `
+                <h3>Questão ${q}:<span class="enunciado-preview"> ${cleanEnunciado}</span></h3>
+                <span class="accordion-icon">+</span>
+            `;
+
+            // Body
+            const body = document.createElement("div");
+            body.className = "accordion-body";
+
+            // Removido a caixa de enunciado interna pois agora já está no título!
+            
+            // Table for alternatives
+            let tableRows = "";
+            qData.alternativas.forEach(alt => {
+                const statusStr = String(alt["Status Alternativa"] || "").trim();
+                let statusBadge = statusStr || "<span class='empty-cell'>-</span>";
+                
+                if (statusStr.toLowerCase() === "correta") {
+                    statusBadge = `<span class="status-badge status-correta">${statusStr}</span>`;
+                } else if (statusStr.toLowerCase() === "incorreta") {
+                    statusBadge = `<span class="status-badge status-incorreta">${statusStr}</span>`;
+                }
+
+                const respIA = alt["Resposta IA"] || "<span class='empty-cell'>-</span>";
+                const respApostila = alt["Resposta Apostila"] || "<span class='empty-cell'>-</span>";
+                const altLetter = alt["Alternativa"] || "-";
+
+                tableRows += `
+                    <tr>
+                        <td style="font-weight: bold; text-align: center; width: 60px;">${altLetter}</td>
+                        <td style="width: 100px;">${statusBadge}</td>
+                        <td style="max-width: 300px;">${respIA}</td>
+                        <td style="max-width: 300px;">${respApostila}</td>
+                    </tr>
+                `;
+            });
+
+            const tableHtml = `
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Alt.</th>
+                                <th>Status</th>
+                                <th>Resposta IA</th>
+                                <th>Resposta Apostila</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${tableRows}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            body.innerHTML = tableHtml;
+
+            // Toggle Logic
+            header.addEventListener("click", () => {
+                const isOpen = body.classList.contains("open");
+                if (isOpen) {
+                    body.classList.remove("open");
+                    header.classList.remove("active");
+                    header.querySelector(".accordion-icon").textContent = "+";
+                } else {
+                    body.classList.add("open");
+                    header.classList.add("active");
+                    header.querySelector(".accordion-icon").textContent = "+";
+                }
+            });
+
+            item.appendChild(header);
+            item.appendChild(body);
+            container.appendChild(item);
+        });
+        
+        // Reset expand all state
+        isAllExpanded = false;
+        toggleAllBtn.textContent = "Expandir Tudo";
+    }
+
+    function filterData() {
+        const query = searchInput.value.toLowerCase();
+        
+        if (!query) {
+            renderAccordion(rawData);
+            return;
+        }
+
+        const filteredData = rawData.filter(row => {
+            return Object.values(row).some(val => 
+                String(val).toLowerCase().includes(query)
+            );
+        });
+        
+        renderAccordion(filteredData);
+        
+        if (query.length > 2) {
+            toggleAllState(true);
+        }
+    }
+
+    function toggleAllState(forceOpen) {
+        const headers = document.querySelectorAll('.accordion-header');
+        const bodies = document.querySelectorAll('.accordion-body');
+        
+        const shouldOpen = forceOpen !== undefined ? forceOpen : !isAllExpanded;
+
+        headers.forEach((h, i) => {
+            if (shouldOpen) {
+                h.classList.add('active');
+                bodies[i].classList.add('open');
+            } else {
+                h.classList.remove('active');
+                bodies[i].classList.remove('open');
+            }
+        });
+
+        isAllExpanded = shouldOpen;
+        toggleAllBtn.textContent = isAllExpanded ? "Recolher Tudo" : "Expandir Tudo";
+    }
+
+    searchInput.addEventListener("input", filterData);
+    toggleAllBtn.addEventListener("click", () => toggleAllState());
+
+    // Iniciar
+    renderAccordion(rawData);
+</script>
+
+</body>
+</html>
