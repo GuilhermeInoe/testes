@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-PT">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Visualização de Respostas - Acordeon</title>
+    <title>Visualização de Respostas - Responsivo</title>
     <style>
         * {
             box-sizing: border-box;
@@ -26,6 +26,7 @@
             color: #2c3e50;
             margin-bottom: 30px;
             font-weight: 600;
+            font-size: 24px;
         }
         .controls {
             margin-bottom: 20px;
@@ -41,7 +42,7 @@
         }
         .search-box {
             flex: 1;
-            min-width: 300px;
+            min-width: 250px;
         }
         input[type="text"] {
             width: 100%;
@@ -55,6 +56,11 @@
             outline: none;
             border-color: #3498db;
             box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+        }
+        .controls-info {
+            display: flex; 
+            gap: 15px; 
+            align-items: center;
         }
         
         /* Accordion Styles */
@@ -72,7 +78,7 @@
             cursor: pointer;
             display: flex;
             justify-content: space-between;
-            align-items: flex-start; /* Mudado para lidar com texto de múltiplas linhas */
+            align-items: flex-start;
             transition: background-color 0.2s;
             user-select: none;
         }
@@ -84,7 +90,7 @@
             color: #fff;
         }
         .accordion-header.active .enunciado-preview {
-            color: #d1d8e0; /* Cor mais clara quando ativo para dar contraste */
+            color: #d1d8e0;
         }
         .accordion-header h3 {
             margin: 0;
@@ -92,7 +98,7 @@
             font-weight: 600;
             line-height: 1.5;
             flex: 1;
-            padding-right: 20px;
+            padding-right: 15px;
         }
         .enunciado-preview {
             font-weight: 400;
@@ -125,9 +131,8 @@
             to { opacity: 1; transform: translateY(0); }
         }
         
-        /* Content Styles */
+        /* Table Styles */
         .table-responsive {
-            overflow-x: auto;
             background: #fff;
             border-radius: 6px;
             border: 1px solid #e1e8ed;
@@ -136,12 +141,14 @@
             width: 100%;
             border-collapse: collapse;
             font-size: 15px;
+            table-layout: fixed; /* Better control over widths */
         }
         th, td {
             padding: 12px 15px;
             text-align: left;
             border-bottom: 1px solid #e1e8ed;
             vertical-align: top;
+            word-wrap: break-word;
         }
         th {
             background-color: #f1f5f8;
@@ -152,6 +159,12 @@
             border-bottom: none;
         }
         
+        /* Column Widths for Desktop */
+        .col-alt { width: 60px; font-weight: bold; text-align: center; }
+        .col-status { width: 120px; }
+        .col-ia { width: auto; }
+        .col-apostila { width: auto; }
+        
         /* Badges */
         .status-badge {
             padding: 5px 10px;
@@ -161,18 +174,10 @@
             display: inline-block;
             text-align: center;
         }
-        .status-correta {
-            background-color: #d4edda;
-            color: #155724;
-        }
-        .status-incorreta {
-            background-color: #f8d7da;
-            color: #721c24;
-        }
-        .empty-cell {
-            color: #999;
-            font-style: italic;
-        }
+        .status-correta { background-color: #d4edda; color: #155724; }
+        .status-incorreta { background-color: #f8d7da; color: #721c24; }
+        .empty-cell { color: #999; font-style: italic; }
+        
         .expand-all-btn {
             padding: 10px 15px;
             background: #3498db;
@@ -187,6 +192,82 @@
         .expand-all-btn:hover {
             background: #2980b9;
         }
+
+        /* --- RESPONSIVIDADE (MOBILE) --- */
+        @media screen and (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .controls-info {
+                justify-content: space-between;
+                width: 100%;
+                margin-top: 10px;
+            }
+            .accordion-body {
+                padding: 10px;
+            }
+            
+            /* Transform Table to Cards on Mobile */
+            table, thead, tbody, th, td, tr {
+                display: block;
+            }
+            thead tr {
+                position: absolute;
+                top: -9999px;
+                left: -9999px;
+            }
+            tr {
+                border: 1px solid #ccc;
+                border-radius: 8px;
+                margin-bottom: 15px;
+                background: #fff;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            }
+            td {
+                border: none;
+                border-bottom: 1px solid #eee;
+                position: relative;
+                padding-left: 40%;
+                text-align: left !important;
+                width: 100% !important; /* Overrides desktop width */
+                min-height: 45px;
+            }
+            td:last-child {
+                border-bottom: 0;
+            }
+            td::before {
+                position: absolute;
+                top: 12px;
+                left: 15px;
+                width: calc(40% - 20px);
+                white-space: nowrap;
+                font-weight: 600;
+                color: #2c3e50;
+                content: attr(data-label);
+            }
+            /* Specific tweaks for card view */
+            .col-alt { text-align: left !important; }
+        }
+        
+        @media screen and (max-width: 480px) {
+            /* For very small screens, stack the label and content vertically */
+            td {
+                padding-left: 15px;
+                padding-top: 35px;
+            }
+            td::before {
+                top: 10px;
+                left: 15px;
+                width: auto;
+                font-size: 12px;
+                text-transform: uppercase;
+                color: #7f8c8d;
+            }
+        }
     </style>
 </head>
 <body>
@@ -198,7 +279,7 @@
         <div class="search-box">
             <input type="text" id="searchInput" placeholder="Pesquisar por questão, enunciado ou palavra-chave...">
         </div>
-        <div style="display: flex; gap: 15px; align-items: center;">
+        <div class="controls-info">
             <span style="color: #666; font-size: 14px;"><strong id="countDisplay">0</strong> questões</span>
             <button class="expand-all-btn" id="toggleAllBtn">Expandir Tudo</button>
         </div>
@@ -221,7 +302,6 @@
     function renderAccordion(data) {
         container.innerHTML = "";
         
-        // Group data by "Questão"
         const grouped = {};
         data.forEach(row => {
             const qKey = row["Questão "] || row["Questão"] || "Sem identificação";
@@ -252,11 +332,9 @@
             const item = document.createElement("div");
             item.className = "accordion-item";
 
-            // Header
             const header = document.createElement("div");
             header.className = "accordion-header";
             
-            // Format statement for inline title
             let cleanEnunciado = qData.enunciado.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
             
             header.innerHTML = `
@@ -264,13 +342,9 @@
                 <span class="accordion-icon">+</span>
             `;
 
-            // Body
             const body = document.createElement("div");
             body.className = "accordion-body";
 
-            // Removido a caixa de enunciado interna pois agora já está no título!
-            
-            // Table for alternatives
             let tableRows = "";
             qData.alternativas.forEach(alt => {
                 const statusStr = String(alt["Status Alternativa"] || "").trim();
@@ -286,12 +360,13 @@
                 const respApostila = alt["Resposta Apostila"] || "<span class='empty-cell'>-</span>";
                 const altLetter = alt["Alternativa"] || "-";
 
+                // Added data-label for mobile responsive design
                 tableRows += `
                     <tr>
-                        <td style="font-weight: bold; text-align: center; width: 60px;">${altLetter}</td>
-                        <td style="width: 100px;">${statusBadge}</td>
-                        <td style="max-width: 300px;">${respIA}</td>
-                        <td style="max-width: 300px;">${respApostila}</td>
+                        <td data-label="Alt." class="col-alt">${altLetter}</td>
+                        <td data-label="Status" class="col-status">${statusBadge}</td>
+                        <td data-label="Resposta IA" class="col-ia">${respIA}</td>
+                        <td data-label="Resposta Apostila" class="col-apostila">${respApostila}</td>
                     </tr>
                 `;
             });
@@ -301,10 +376,10 @@
                     <table>
                         <thead>
                             <tr>
-                                <th>Alt.</th>
-                                <th>Status</th>
-                                <th>Resposta IA</th>
-                                <th>Resposta Apostila</th>
+                                <th class="col-alt">Alt.</th>
+                                <th class="col-status">Status</th>
+                                <th class="col-ia">Resposta IA</th>
+                                <th class="col-apostila">Resposta Apostila</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -316,7 +391,6 @@
 
             body.innerHTML = tableHtml;
 
-            // Toggle Logic
             header.addEventListener("click", () => {
                 const isOpen = body.classList.contains("open");
                 if (isOpen) {
@@ -335,7 +409,6 @@
             container.appendChild(item);
         });
         
-        // Reset expand all state
         isAllExpanded = false;
         toggleAllBtn.textContent = "Expandir Tudo";
     }
@@ -384,7 +457,6 @@
     searchInput.addEventListener("input", filterData);
     toggleAllBtn.addEventListener("click", () => toggleAllState());
 
-    // Iniciar
     renderAccordion(rawData);
 </script>
 
